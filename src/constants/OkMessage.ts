@@ -1,1 +1,1 @@
-export const okMessage = "Продублировано в телеграм ;)"
+export const okMessage = "Продублировано в телеграм"

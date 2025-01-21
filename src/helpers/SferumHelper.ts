@@ -1,7 +1,7 @@
-import {BaseStorage} from "../connectors/BaseStorage";
+import { BaseStorage } from "../connectors/BaseStorage";
 import EventEmitter from "node:events";
-import {SferumChat, SferumContext, SferumForwardFunc, SferumMessage} from "./SferumTypes";
-import * as console from "node:console";
+import { SferumChat, SferumContext, SferumForwardFunc, SferumMessage } from "./SferumTypes";
+import { fromBotMessage } from "../constants/fromBotMessage";
 
 type SferumFetchOptions = {
   method: "GET" | "POST" | "PUT" | "DELETE";
@@ -29,8 +29,8 @@ class SferumEmitter extends EventEmitter {
     super();
   }
 
-  emit(event: SferumEventType, data: SferumMessage, context: SferumContext) : boolean;
-  emit(event: SferumEventType, data: any, forward: any) : boolean {
+  emit(event: SferumEventType, data: SferumMessage, context: SferumContext): boolean;
+  emit(event: SferumEventType, data: any, forward: any): boolean {
     return super.emit(event, data, forward);
   }
 
@@ -55,7 +55,7 @@ export class SferumHelper {
   private emitter: SferumEmitter;
   private bot_id?: number;
   private access_token?: string;
-  private observerInterval?:  NodeJS.Timeout;
+  private observerInterval?: NodeJS.Timeout;
   private readonly remixdsid: string;
   private readonly chatID: number;
 
@@ -66,8 +66,8 @@ export class SferumHelper {
     this.emitter = new SferumEmitter();
 
     this.updateAccessToken()
-      .then(()=>this.startObserver())
-      .then(()=>console.log("Успешная инициализация SferumHelper"));
+      .then(() => this.startObserver())
+      .then(() => console.log("Успешная инициализация SferumHelper"));
   }
 
   on(event: SferumEventType, listener: (data: SferumMessage) => void): any;
@@ -87,7 +87,7 @@ export class SferumHelper {
       body: {
         peer_id,
         random_id: Math.floor(Math.random() * 100000),
-        message: text,
+        message: fromBotMessage + text,
         lang: "ru",
         ...additional
       },
@@ -98,59 +98,64 @@ export class SferumHelper {
 
   private async getNewMessages() {
     try {
-    const apiResponse = await this.apiFetch("/method/messages.getHistory", {
-      method: "POST",
-      body: {
-        peer_id: this.chatID,
-        start_cmid:"159",
-        count:"10",
-        offset:"-1",
-        extended:"1",
-        group_id:"0",
-        fwd_extended:"1",
-        lang:"ru",
-        fields:"id,first_name,first_name_gen,first_name_acc,first_name_ins,last_name,last_name_gen,last_name_acc,last_name_ins,sex,has_photo,photo_id,photo_50,photo_100,photo_200,contact_name,occupation,bdate,city,screen_name,online_info,verified,blacklisted,blacklisted_by_me,language,can_call,can_write_private_message,can_send_friend_request,can_invite_to_chats,friend_status,followers_count,profile_type,contacts,employee_mark,employee_working_state,is_service_account,image_status,photo_base,educational_profile,edu_roles,name,type,members_count,member_status,is_closed,can_message,deactivated,activity,ban_info,is_messages_blocked,can_send_notify,can_post_donut,site,reposts_disabled,description,action_button,menu,role,unread_count,wall",
-      },
-      auth: true,
-      bodyType: "x-www-form-urlencoded"
-    });
-
-    let last_message_timestamp = await this.storage.getLastMessageTimestamp();
-
-    const messages = apiResponse.response.items
-      .filter((message: SferumMessage) => message.date > last_message_timestamp);
-
-    if (messages.length > 0) {
-      last_message_timestamp = messages[0].date;
-      this.storage.setLastMessageTimestamp(last_message_timestamp);
-    }
-
-    messages
-      .map((message: SferumMessage) => {
-        const answer: SferumForwardFunc = (text: string) => this.sendMessages(message.peer_id, text, {
-          forward: {
-            peed_id: message.peer_id,
-            conversation_message_id: message.conversation_message_id,
-            is_reply: true
-          }
-        });
-
-        const context: SferumContext = {
-          forward: answer,
-          author: apiResponse.response.profiles.find(profile => profile.id === message.from_id),
-          chat: apiResponse.response.conversations[0] as SferumChat,
-          is_from_bot: message.from_id === this.bot_id,
-          attachments: message.attachments,
-        }
-        return this.emitter.emit(SferumEventType.NEW_MSG, message, context)
+      const apiResponse = await this.apiFetch("/method/messages.getHistory", {
+        method: "POST",
+        body: {
+          peer_id: this.chatID,
+          start_cmid: "-1",
+          count: "10",
+          offset: "-1",
+          extended: "1",
+          group_id: "0",
+          fwd_extended: "1",
+          lang: "ru",
+          fields: "id,first_name,first_name_gen,first_name_acc,first_name_ins,last_name,last_name_gen,last_name_acc,last_name_ins,sex,has_photo,photo_id,photo_50,photo_100,photo_200,contact_name,occupation,bdate,city,screen_name,online_info,verified,blacklisted,blacklisted_by_me,language,can_call,can_write_private_message,can_send_friend_request,can_invite_to_chats,friend_status,followers_count,profile_type,contacts,employee_mark,employee_working_state,is_service_account,image_status,photo_base,educational_profile,edu_roles,name,type,members_count,member_status,is_closed,can_message,deactivated,activity,ban_info,is_messages_blocked,can_send_notify,can_post_donut,site,reposts_disabled,description,action_button,menu,role,unread_count,wall",
+        },
+        auth: true,
+        bodyType: "x-www-form-urlencoded"
       });
+
+      let last_message_timestamp = await this.storage.getLastMessageTimestamp();
+
+      const messages = apiResponse.response.items
+        .filter((message: SferumMessage) => message.date > last_message_timestamp);
+
+      if (messages.length > 0) {
+        console.log("Приняты сообщения:", messages);
+        last_message_timestamp = messages[0].date;
+        this.storage.setLastMessageTimestamp(last_message_timestamp);
+      } else {
+        console.log("Новых сообщений не найдено")
+      }
+
+      messages
+        .map((message: SferumMessage) => {
+          const answer: SferumForwardFunc = (text: string) => this.sendMessages(message.peer_id, text, {
+            forward: {
+              peed_id: message.peer_id,
+              conversation_message_id: message.conversation_message_id,
+              is_reply: true
+            }
+          });
+
+          const context: SferumContext = {
+            forward: answer,
+            author: apiResponse.response.profiles.find(profile => profile.id === message.from_id),
+            chat: apiResponse.response.conversations[0] as SferumChat,
+            is_from_bot: message.from_id === this.bot_id,
+            attachments: message.attachments,
+          }
+          return this.emitter.emit(SferumEventType.NEW_MSG, message, context)
+        });
     } catch (error) {
-      console.error("Ошибка в проходе getNewMessages Sferum:",error);
+      console.error("Ошибка в проходе getNewMessages Sferum:", error);
     }
   }
 
   private startObserver() {
     this.observerInterval = setInterval(() => this.getNewMessages(), this.UPDATE_INTERVAL_MS);
+    process.once('SIGINT', () => this.stopObserver())
+    process.once('SIGTERM', () => this.stopObserver())
   }
 
   private async updateAccessToken() {
@@ -188,9 +193,9 @@ export class SferumHelper {
         ...body,
       }
     }
-    if (body && typeof body === "object"){
+    if (body && typeof body === "object") {
       body = Object.fromEntries(Object.entries(body).map(([key, value]) => {
-        if(typeof value === "object") {
+        if (typeof value === "object") {
           return [key, JSON.stringify(value)]
         }
         return [key, value]
@@ -213,7 +218,7 @@ export class SferumHelper {
     const parsedResponse: any = await apiResponse.json();
 
     if (parsedResponse?.error !== undefined) {
-      console.warn("Ошибка запроса:",`${this.API_PROTO}${subdomain}.${this.BASE_DOMAIN}${uri}?${params}`, {
+      console.warn("Ошибка запроса:", `${this.API_PROTO}${subdomain}.${this.BASE_DOMAIN}${uri}?${params}`, {
         method: options.method,
         headers: {
           "Content-Type": options?.bodyType === "json" ? "application/json" : "application/x-www-form-urlencoded",

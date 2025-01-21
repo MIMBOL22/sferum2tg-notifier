@@ -12,10 +12,9 @@ type EnvsType = {
   [key in typeof ENV_KEYS[number]]: string;
 };
 
-export const getEnvs = () =>  {
-  const envValues = ENV_KEYS.map(key => process.env[key]);
-  if (Object.values(envValues).includes(undefined)) throw new Error('Missing environment variables');
-  const envEntries = ENV_KEYS.map((key, index) => [key, envValues[index]]);
+export const getEnvs = () => {
+  const envEntries = ENV_KEYS.map((key) => [key, process.env[key]])
+  if (Object.values(envEntries).includes(undefined)) throw new Error('Missing environment variables');
   const envs = Object.fromEntries(envEntries);
   return envs as EnvsType;
 }

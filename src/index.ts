@@ -1,12 +1,14 @@
 import 'dotenv/config'
-import {getEnvs} from "./getEnvs";
-import {SferumEventType, SferumHelper} from "./helpers/SferumHelper";
-import {RedisStorage} from "./connectors/RedisStorage";
-import {TelegramHelper} from "./helpers/TelegramHelper";
-import {catchTrigger} from "./utils/cacheTrigger";
-import {okMessage} from "./constants/OkMessage";
+import { getEnvs } from "./getEnvs";
+import { SferumEventType, SferumHelper } from "./helpers/SferumHelper";
+import { RedisStorage } from "./connectors/RedisStorage";
+import { TelegramHelper } from "./helpers/TelegramHelper";
+import { catchTrigger } from "./utils/cacheTrigger";
+import { okMessage } from "./constants/okMessage";
+import { fromBotMessage } from './constants/fromBotMessage';
 
-const a: boolean = true;
+// debugMode (selfMsgDetect)
+const a: boolean = false;
 
 const main = async () => {
   const envs = getEnvs();
@@ -15,19 +17,19 @@ const main = async () => {
   const sferumHelper = new SferumHelper(envs.SFERUM_TOKEN, +envs.SFERUM_CHAT_ID, redisStorage);
   const telegramHelper = new TelegramHelper(envs.TELEGRAM_TOKEN, envs.ADMIN_TELEGRAM_ID, redisStorage);
 
-  sferumHelper.on(SferumEventType.NEW_MSG, async (msg, {forward, is_from_bot, author, attachments}) => {
+  sferumHelper.on(SferumEventType.NEW_MSG, async (msg, { forward, is_from_bot, author, attachments }) => {
     const is_need_to_notify = catchTrigger(msg)
       .addCatcher(msg => msg.text.toLowerCase().includes("продублир"))
       .addCatcher(() => attachments.length > 0)
       .build();
 
-    console.log(is_need_to_notify, msg.text !== okMessage, (!is_from_bot || a))
-    const image_urls = attachments.map(attachment => attachment.photo.sizes.find(size => size.type === "z")?.url || attachment.photo.orig_photo );
+    console.log(is_need_to_notify, !msg.text.includes(fromBotMessage), (!is_from_bot || a))
+    const image_urls = attachments.map(attachment => attachment.photo.sizes.find(size => size.type === "z")?.url || attachment.photo.orig_photo);
 
-    if (is_need_to_notify && msg.text !== okMessage && (!is_from_bot || a)) {
+    if (is_need_to_notify && !msg.text.includes(fromBotMessage) && (!is_from_bot || a)) {
       await telegramHelper.notifyChats("**Сообщение от: " +
         author.last_name_gen + '** ' + author.first_name_gen + ":\n\n" +
-        "```Сообщение: "+msg.text+"```", image_urls);
+        "```Сообщение: \n" + msg.text + "```", image_urls);
       await forward(okMessage);
     }
   })

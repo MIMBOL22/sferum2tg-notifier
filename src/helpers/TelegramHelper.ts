@@ -1,5 +1,5 @@
-import {Context, Telegraf} from "telegraf";
-import {BaseStorage} from "../connectors/BaseStorage";
+import { Context, Telegraf } from "telegraf";
+import { BaseStorage } from "../connectors/BaseStorage";
 
 // Абстракция для Telegram бота
 export class TelegramHelper {
@@ -13,8 +13,9 @@ export class TelegramHelper {
 
     this.bot = new Telegraf(token);
     this.registerHandlers();
-    this.bot.launch()
-      .then(() => console.log("Telegram bot has been started"));
+    this.bot
+      .launch(() => console.log("Telegram bot has been started"))
+      .then(() => console.log("Telegram bot has been stoped"));
   }
 
   async notifyChats(message: string, imgUrls: string[] = []) {
@@ -25,10 +26,10 @@ export class TelegramHelper {
 
       if (imgUrls.length > 0) {
         try {
-            await this.bot.telegram.sendMediaGroup(
-              chatId,
-              imgUrls.map(imgUrl => ({ type: "photo", media: imgUrl, caption: message, parse_mode:  "MarkdownV2"}))
-            )
+          await this.bot.telegram.sendMediaGroup(
+            chatId,
+            imgUrls.map(imgUrl => ({ type: "photo", media: imgUrl, caption: message, parse_mode: "MarkdownV2" }))
+          )
         } catch (e) {
           console.error("Ошибка пересылки изображений изображения:", imgUrls, "chatId:", chatId, "Ошибка:", e);
         }
@@ -60,18 +61,18 @@ export class TelegramHelper {
     });
 
     this.bot.command("register", async (ctx) => {
-      if ((ctx.message.from.id+"") !== this.adminId && ctx.chat.type !== "private"){
+      if ((ctx.message.from.id + "") !== this.adminId && ctx.chat.type !== "private") {
         return await ctx.reply("Вы не являетесь администратором бота, обратитесь к @" + process.env.ADMIN_TELEGRAM_USERNAME);
       }
-      await this.storage.addTelegramChatId(ctx.chat.id+"");
+      await this.storage.addTelegramChatId(ctx.chat.id + "");
       await ctx.reply("Вы успешно зарегистрированы");
     });
 
     this.bot.command("unregister", async (ctx) => {
-      if ((ctx.message.from.id+"") !== this.adminId && ctx.chat.type !== "private") {
+      if ((ctx.message.from.id + "") !== this.adminId && ctx.chat.type !== "private") {
         return await ctx.reply("Вы не являетесь администратором бота, обратитесь к @" + process.env.ADMIN_TELEGRAM_USERNAME);
       }
-      await this.storage.removeTelegramChatId(ctx.chat.id+"");
+      await this.storage.removeTelegramChatId(ctx.chat.id + "");
       await ctx.reply("Вы успешно отписались");
     });
 
