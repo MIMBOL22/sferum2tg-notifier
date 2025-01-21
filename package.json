@@ -1,0 +1,23 @@
+{
+  "name": "Sferum2TgNotifier",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "npx tsc",
+    "start": "npm build && node ./build/index.js",
+    "dev": "npx tsc-watch --onSuccess \"node ./build/index.js\""
+  },
+  "dependencies": {
+    "@redis/client": "^1.6.0",
+    "@types/node": "^22.10.7",
+    "dotenv": "^16.4.7",
+    "redis": "^4.7.0",
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "tsc-watch": "^6.0.0",
+    "typescript": "^5.5.3"
+  },
+  "private": true
+}
